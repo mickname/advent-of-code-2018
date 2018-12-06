@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import sys
-import itertools
+import collections
 
 
 def are_opposing_case(a, b):
@@ -10,23 +10,28 @@ def are_opposing_case(a, b):
 
 
 def react(polymer):
-    reacted = polymer[:]
-    i = 0
-    try:
-        while True:
-            if are_opposing_case(reacted[i], reacted[i+1]):
-                reacted[i:] = reacted[i+2:]  # not gud
-                i = max(0, i - 1)
-            else:
-                i += 1
-    except IndexError:
-        pass
+    front = [polymer[0]]
+    # Store the later values backwards to allow fast access to their original
+    # front, now at the end of the list
+    back = list(reversed(polymer[1:]))
 
-    return reacted
+    while back:
+        if are_opposing_case(front[-1], back[-1]):
+            front.pop()
+            back.pop()
+            if len(front) > 1:
+                back.append(front.pop())
+            elif len(front) == 0:
+                front.append(back.pop())
+        else:
+            front.append(back.pop())
+
+    return front
 
 
 def main():
     fname = sys.argv[1]
+
     with open(fname) as f:
         polymer = list(f.read().rstrip())
         reacted = react(polymer)
