@@ -4,41 +4,50 @@ import re
 import time
 
 
-def step(points):
-    '''Updates points in place. Returns the bounding box of the sky (min, max).
+def evaluate_area(points, t):
+    '''Evaluate the area of the bounding points of points at time t.
     '''
-
     min_x = float('inf')
     min_y = float('inf')
     max_x = float('-inf')
     max_y = float('-inf')
 
-    for i in range(len(points)):
-        next_point = (
-            points[i][0] + points[i][2],
-            points[i][1] + points[i][3],
-            points[i][2],
-            points[i][3]
-        )
+    for point in points:
+        pos = (point[0] + t * point[2], point[1] + t * point[3])
+        min_x = min(min_x, pos[0])
+        min_y = min(min_y, pos[1])
+        max_x = max(max_x, pos[0])
+        max_y = max(max_y, pos[1])
 
-        min_x = min(min_x, next_point[0])
-        min_y = min(min_y, next_point[1])
-        max_x = max(max_x, next_point[0])
-        max_y = max(max_y, next_point[1])
-
-        points[i] = next_point
-
-    return ((min_x, min_y), (max_x, max_y))
+    return (max_x - min_x) * (max_y - min_y)
 
 
-def show(points, bounds):
-    '''Print the sky area defined by bounds.
+def area_decreasing(points, t):
+    '''Check if the area of the bounds is decreasing between t and t+1. Performs
+    two evaluations.
     '''
+    return evaluate_area(points, t + 1) < evaluate_area(points, t)
 
-    positions = set(point[0:2] for point in points)
 
-    for y in range(bounds[0][1], bounds[1][1] + 1):
-        for x in range(bounds[0][0], bounds[1][0] + 1):
+def draw(points, t):
+    '''Print the points at time t.
+    '''
+    min_x = float('inf')
+    min_y = float('inf')
+    max_x = float('-inf')
+    max_y = float('-inf')
+
+    positions = set()
+    for point in points:
+        pos = (point[0] + t * point[2], point[1] + t * point[3])
+        min_x = min(min_x, pos[0])
+        min_y = min(min_y, pos[1])
+        max_x = max(max_x, pos[0])
+        max_y = max(max_y, pos[1])
+        positions.add(pos)
+
+    for y in range(min_y, max_y + 1):
+        for x in range(min_x, max_x + 1):
             char = '#' if (x, y) in positions else '.'
             print(char, end='')
         print("")
@@ -59,26 +68,29 @@ def main():
             point = tuple(map(int, m.group(1, 2, 3, 4)))
             points.append(point)
 
-    # Step through time while the area if the bounding box of the points is
-    # shrinking. Print out if area is smaller than 100*10.
-    prev_area = float('inf')
+    # Find lower bound
     t = 1
+    while area_decreasing(points, t):
+        print("Lower bound: t={}".format(t))
+        lower = t
+        t *= 2
+    upper = t
+
+    # Bisect
     while True:
-        bounds = step(points)
-        height = bounds[1][1] - bounds[0][1]
-        width = bounds[1][0] - bounds[0][0]
-        area = width * height
+        mid = lower + (upper - lower) // 2
+        if area_decreasing(points, mid):
+            lower = mid
+        else:
+            upper = mid
 
-        print("t={}, w={}, h={}".format(t, width, height))
+        print("Bounds: t={}...{} ".format(lower, upper))
 
-        if area < 100 * 10:
-            show(points, bounds)
-
-        if area > prev_area:
+        if upper - lower <= 1:
             break
 
-        t += 1
-        prev_area = area
+    print("Sky at t={}:\n".format(upper))
+    draw(points, upper)
 
 
 if __name__ == '__main__':
