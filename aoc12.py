@@ -36,15 +36,15 @@ def main():
         # Read the rules
         for line in f:
             if line != '\n':
-                input, _, output = line.split()
-                rules[input] = output
+                pattern, _, output = line.split()
+                rules[pattern] = output
 
     # Calculate next generation
     for g in range(20):
         new_state = collections.defaultdict(lambda: '.')
         for i in range(first_alive - 2, last_alive + 3):
-            input = ''.join([state[x] for x in range(i - 2, i + 3)])
-            output = rules[input]
+            pattern = ''.join([state[x] for x in range(i - 2, i + 3)])
+            output = rules[pattern]
             if output == '#':
                 if i < first_alive:
                     first_alive = i
